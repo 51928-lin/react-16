@@ -9,4 +9,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 ReactDOM.render(<div>Simple React App</div>, document.getElementById('root'))
+const element = <div class='class001'>Simple React App<span>xx1</span><span>xx2</span></div>
+console.log(element)
 /*********react 18之前 end********/
