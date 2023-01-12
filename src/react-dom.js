@@ -9,9 +9,11 @@ function mount(VNode, containerDOM){
 function createDOM(VNode){
     const {type, props} = VNode
     let dom;
-    if (type && VNode.$$typeof === REACT_ELEMENT) {
+    if (typeof type === 'function' && VNode.$$typeof === REACT_ELEMENT){
+        return getDomByFunctionComponent(VNode)
+    }else if (type && VNode.$$typeof === REACT_ELEMENT) {
         dom = document.createElement(type);
-    }
+    } 
     if(props){
         if (typeof props.children === 'object' && props.children.type) {
             mount(props.children, dom)
@@ -60,6 +62,12 @@ function setPropsForDOM(dom, VNodeProps = {}) {
             dom[key] = VNodeProps[key]
         }
     }
+}
+function getDomByFunctionComponent(vNode) {
+    let { type, props } = vNode;
+    let renderVNode = type(props);
+    if (!renderVNode) return null;
+    return createDOM(renderVNode);
 }
 const ReactDOM = {
     render
