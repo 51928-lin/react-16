@@ -1,5 +1,5 @@
 import { REACT_ELEMENT } from './utils'
-
+import { Component } from './Component'
 function createElement(type, properties = {}, children) {
     let ref = properties.ref || null; // 后面会讲到，这里只需要知道是跟操作DOM相关
     let key = properties.key || null; // 后面会讲到，这里只需要知道这个跟DOM DIFF相关
@@ -27,6 +27,7 @@ function createElement(type, properties = {}, children) {
     }
   }
   const React = {
-    createElement
+    createElement,
+    Component
   }
   export default React;
