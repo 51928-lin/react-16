@@ -6,7 +6,8 @@ function mount(VNode, containerDOM){
     let newDOM = createDOM(VNode)
     newDOM && containerDOM.appendChild(newDOM);
 }
-function createDOM(VNode){
+export function createDOM(VNode){
+    if(!VNode) return
     const {type, props} = VNode
     let dom;
     if (typeof type === 'function' && type.IS_CLASS_COMPONENT && VNode.$$typeof === REACT_ELEMENT){
@@ -26,6 +27,7 @@ function createDOM(VNode){
         }
     }
     setPropsForDOM(dom, props)
+    VNode.dom = dom
     return dom
 }
 function mountArray(children, parent){
@@ -77,8 +79,23 @@ function getDomByClassComponent(vNode){
     let { type, props } = vNode;
     let instance = new type(props)
     let renderVNode = instance.render();
+    instance.oldVNode = renderVNode
+    // 纯粹是为了测试，删除
+    setTimeout(() => {
+        instance.setState({xxx: '99999999'})
+    }, 3000)
     if (!renderVNode) return null;
     return createDOM(renderVNode);
+}
+export function updateDomTree(oldDOM, newVNode){
+    if(!oldDOM) return
+    let parentNode = oldDOM.parentNode
+    parentNode.removeChild(oldDOM);
+    parentNode.appendChild(createDOM(newVNode))
+}
+export function findDomByVNode(VNode){
+    if(!VNode) return
+    if(VNode.dom) return VNode.dom
 }
 const ReactDOM = {
     render

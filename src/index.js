@@ -4,8 +4,12 @@ import ReactDOM from './react-dom';
 //     return <div className='test-class' style={{color: 'red'}}>Simple React App<span>{props.xx}</span><span>xx2</span></div>
 // }
 class MyClassComponent extends React.Component{
+    constructor(props) {
+        super(props);
+        this.state = { xxx: '999' };
+    }
     render(){
-        return <div className='test-class' style={{color: 'red'}}>Simple React App {this.props.xx}</div>
+        return <div className='test-class' style={{color: 'red'}}>Simple React App {this.state.xxx}</div>
     }
 }
-ReactDOM.render(<MyClassComponent xx="xx1"/>, document.getElementById('root'))
+ReactDOM.render(<MyClassComponent />, document.getElementById('root'))
