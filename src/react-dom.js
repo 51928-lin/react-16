@@ -9,7 +9,7 @@ function mount(VNode, containerDOM){
 }
 export function createDOM(VNode){
     if(!VNode) return
-    const {type, props} = VNode
+    const {type, props, ref} = VNode
     let dom;
     if (typeof type === 'function' && type.IS_CLASS_COMPONENT && VNode.$$typeof === REACT_ELEMENT){
         return getDomByClassComponent(VNode)
@@ -29,6 +29,7 @@ export function createDOM(VNode){
     }
     setPropsForDOM(dom, props)
     VNode.dom = dom
+    ref && (ref.current = dom)
     return dom
 }
 function mountArray(children, parent){
