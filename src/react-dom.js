@@ -1,4 +1,5 @@
 import { REACT_ELEMENT } from './utils'
+import { addEvent } from './event'
 function render(VNode, containerDOM){
     mount(VNode, containerDOM)
 }
@@ -52,7 +53,7 @@ function setPropsForDOM(dom, VNodeProps = {}) {
             // . :含义1: Matches any single character except line terminators: \n, \r, \u2028分隔符 or \u2029段落分隔符. For example, /.y/ matches "my" and "ay", but not "yes", in "yes make my day", as there is no character before "y" in "yes".
             // . :含义2: Inside a character class, the dot loses its special meaning and matches a literal dot.
             // * : https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_Expressions/Quantifiers Matches the preceding item "x" 0 or more times.
-            // TODO: 事件相关内容我们在后续单独介绍
+            addEvent(dom, key.toLowerCase(), VNodeProps[key])
         } else if (key === 'style') {
             Object.keys(VNodeProps[key]).forEach(styleName => {
                 dom.style[styleName] = (VNodeProps[key])[styleName];
@@ -80,10 +81,6 @@ function getDomByClassComponent(vNode){
     let instance = new type(props)
     let renderVNode = instance.render();
     instance.oldVNode = renderVNode
-    // 纯粹是为了测试，删除
-    setTimeout(() => {
-        instance.setState({xxx: '99999999'})
-    }, 3000)
     if (!renderVNode) return null;
     return createDOM(renderVNode);
 }
