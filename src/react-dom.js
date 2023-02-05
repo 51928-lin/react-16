@@ -1,4 +1,4 @@
-import { REACT_ELEMENT } from './utils'
+import { REACT_ELEMENT, REACT_FORWARD_REF } from './utils'
 import { addEvent } from './event'
 function render(VNode, containerDOM){
     mount(VNode, containerDOM)
@@ -15,6 +15,8 @@ export function createDOM(VNode){
         return getDomByClassComponent(VNode)
     } else if (typeof type === 'function' && VNode.$$typeof === REACT_ELEMENT){
         return getDomByFunctionComponent(VNode)
+    } if (type && type.$$typeof === REACT_FORWARD_REF) {
+        return getDomByRefForwardFunction(VNode);
     } else if (type && VNode.$$typeof === REACT_ELEMENT) {
         dom = document.createElement(type);
     } 
@@ -76,14 +78,20 @@ function getDomByFunctionComponent(vNode) {
     if (!renderVNode) return null;
     return createDOM(renderVNode);
 }
-
 function getDomByClassComponent(vNode){
-    let { type, props } = vNode;
+    let { type, props, ref } = vNode;
     let instance = new type(props)
+    ref && (ref.current = instance);
     let renderVNode = instance.render();
     instance.oldVNode = renderVNode
     if (!renderVNode) return null;
     return createDOM(renderVNode);
+}
+function getDomByRefForwardFunction(vNode){
+    let { type, props, ref } = vNode;
+    let renderVdom = type.render(props, ref);
+    if (!renderVdom) return null;
+    return createDOM(renderVdom);
 }
 export function updateDomTree(oldDOM, newVNode){
     if(!oldDOM) return
