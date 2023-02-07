@@ -10,7 +10,7 @@ export function addEvent(dom, eventName, bindFunction) {
 }
 
 function dispatchEvent(nativeEvent) {
-    updaterQueue.isBathingUpdate = true;
+    updaterQueue.isBatch = true;
 
     // 这里本质上是对原始事件进行了一层代理
     // 核心点 2/2: 屏蔽浏览器差异
