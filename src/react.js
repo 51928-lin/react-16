@@ -1,4 +1,4 @@
-import { REACT_ELEMENT, REACT_FORWARD_REF } from './utils'
+import { REACT_ELEMENT, REACT_FORWARD_REF, toVNode } from './utils'
 import { Component } from './Component'
 function createElement(type, properties = {}, children) {
     let ref = properties.ref || null; // 后面会讲到，这里只需要知道是跟操作DOM相关
@@ -11,10 +11,10 @@ function createElement(type, properties = {}, children) {
 
     if (arguments.length > 3) {
         // 多个子元素, 转化成数组
-        props.children = Array.prototype.slice.call(arguments, 2);
+        props.children = Array.prototype.slice.call(arguments, 2).map(toVNode);
       } else {
         // 单个子元素，转化为数组
-        props.children = children;
+        props.children = toVNode(children);
       }
 
 

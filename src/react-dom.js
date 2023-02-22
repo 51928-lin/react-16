@@ -1,4 +1,4 @@
-import { REACT_ELEMENT, REACT_FORWARD_REF } from './utils'
+import { REACT_ELEMENT, REACT_FORWARD_REF, MOVE, CREATE, REACT_TEXT } from './utils'
 import { addEvent } from './event'
 function render(VNode, containerDOM) {
     mount(VNode, containerDOM)
@@ -15,8 +15,10 @@ export function createDOM(VNode) {
         return getDomByClassComponent(VNode)
     } else if (typeof type === 'function' && VNode.$$typeof === REACT_ELEMENT) {
         return getDomByFunctionComponent(VNode)
-    } if (type && type.$$typeof === REACT_FORWARD_REF) {
+    } else if (type && type.$$typeof === REACT_FORWARD_REF) {
         return getDomByRefForwardFunction(VNode);
+    } else if (type === REACT_TEXT){
+        dom = document.createTextNode(props);
     } else if (type && VNode.$$typeof === REACT_ELEMENT) {
         dom = document.createElement(type);
     }
@@ -25,8 +27,6 @@ export function createDOM(VNode) {
             mount(props.children, dom)
         } else if (Array.isArray(props.children)) {
             mountArray(props.children, dom);
-        } else if (typeof props.children === 'string') {
-            dom.appendChild(document.createTextNode(props.children));
         }
     }
     setPropsForDOM(dom, props)
@@ -37,11 +37,8 @@ export function createDOM(VNode) {
 function mountArray(children, parent) {
     if (!Array.isArray(children)) return
     for (let i = 0; i < children.length; i++) {
-        if (typeof children[i] === 'string') {
-            parent.appendChild(document.createTextNode(children[i]))
-        } else {
-            mount(children[i], parent)
-        }
+        children[i].index = i;
+        mount(children[i], parent)
     }
 }
 
@@ -93,18 +90,88 @@ function getDomByRefForwardFunction(vNode) {
     if (!renderVdom) return null;
     return createDOM(renderVdom);
 }
-function updateProps(currentDOM, oldVNodeProps, newVNodeProps){
-
-}
-function updateChildren(currentDOM, oldVNodeChildren, newVNodeChildren){
-
-}
-function updateClassComponent(oldVNode, newVNode){
-
-}
-function updateFunctionComponent(oldVNode, newVNode){
+function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
+    oldVNodeChildren = (Array.isArray(oldVNodeChildren) ? oldVNodeChildren : [oldVNodeChildren]).filter(Boolean);
+    newVNodeChildren = (Array.isArray(newVNodeChildren) ? newVNodeChildren : [newVNodeChildren]).filter(Boolean);
     
+    // 利用Map数据结构为旧的虚拟DOM数组找到key和节点的关系，为后续根据key查找是否有可复用的虚拟DOM创造条件
+    let lastNotChangedIndex = -1;
+    let oldKeyChildMap = {};
+    oldVNodeChildren.forEach((oldVNode, index) => {
+        let oldKey = oldVNode && oldVNode.key ? oldVNode.key : index;
+        oldKeyChildMap[oldKey] = oldVNode;
+    });
+
+    // 遍历新的子虚拟DOM树组，找到可以复用但需要移动的、需要重新创建的、需要删除的节点，剩下的都是不用动的节点
+    let actions = [];
+    newVNodeChildren.forEach((newVNode, index) => {
+        if(typeof newVNode !== 'string'){
+            newVNode.index = index;
+        }
+        let newKey = newVNode.key ? newVNode.key : index;
+        let oldVNode = oldKeyChildMap[newKey];
+        if (oldVNode) {
+            deepDOMDiff(oldVNode, newVNode);
+            if (oldVNode.mountIndex < lastNotChangedIndex) {
+                actions.push({
+                    type: MOVE,
+                    oldVNode,
+                    newVNode,
+                    index
+                });
+            }
+            delete oldKeyChildMap[newKey]
+            lastNotChangedIndex = Math.max(lastNotChangedIndex, oldVNode.mountIndex);
+        } else {
+            actions.push({
+                type: CREATE,
+                newVNode,
+                index
+            });
+        }
+    });
+
+    // 可以复用但需要移动位置的节点，以及用不上需要删除的节点，都从父节点上移除
+    let VNodeToMove = actions.filter(action => action.type === MOVE).map(action => action.oldVNode);
+    let VNodeToDelete = Object.values(oldKeyChildMap)
+    VNodeToMove.concat(VNodeToDelete).forEach(oldVChild => {
+        let currentDOM = findDomByVNode(oldVChild);
+        currentDOM.remove();
+    });
+
+    // 对需要移动以及需要新创建的节点统一插入到正确的位置
+    actions.forEach(action => {
+        let { type, oldVNode, newVNode, index } = action;
+        let childNodes = parentDOM.childNodes;
+        const getDomForInsert = () => {
+            if(type === CREATE){
+                return createDOM(newVNode)
+            }
+            if(type === MOVE){
+                return findDomByVNode(oldVNode)
+            }
+        }
+        let childNode = childNodes[index];
+        if (childNode) {
+            parentDOM.insertBefore(getDomForInsert(), childNode)
+        } else {
+            parentDOM.appendChild(getDomForInsert());
+        }
+    });
 }
+function updateClassComponent(oldVNode, newVNode) {
+    const classInstance = newVNode.classInstance = oldVNode.classInstance;
+    classInstance.updater.launchUpdate();
+}
+function updateFunctionComponent(oldVNode, newVNode) {
+    let oldDOM = findDomByVNode(oldVNode);
+    if (!oldDOM) return;
+    const { type, props } = newVNode;
+    let newRenderVNode = type(props);
+    updateDomTree(oldVNode.oldRenderVNode, newRenderVNode, oldDOM);
+    newVNode.oldRenderVNode = newRenderVNode;
+}
+
 function deepDOMDiff(oldVNode, newVNode) {
     let diffTypeMap = {
         ORIGIN_NODE: typeof oldVNode.type === 'string', // 原生节点
@@ -112,10 +179,10 @@ function deepDOMDiff(oldVNode, newVNode) {
         FUNCTION_COMPONENT: typeof oldVNode.type === 'function'
     }
     let DIFF_TYPE = Object.keys(diffTypeMap).filter(key => diffTypeMap[key])[0]
-    switch(DIFF_TYPE){
+    switch (DIFF_TYPE) {
         case 'ORIGIN_NODE':
             let currentDOM = newVNode.dom = findDomByVNode(oldVNode);
-            updateProps(currentDOM, oldVNode.props, newVNode.props);
+            setPropsForDOM(currentDOM, newVNode.props)
             updateChildren(currentDOM, oldVNode.props.children, newVNode.props.children);
             break;
         case 'CLASS_COMPONENT':
@@ -134,15 +201,16 @@ function removeVNode(vNode) {
 }
 // 开始dom-diff
 export function updateDomTree(oldVNode, newVNode, oldDOM) {
+    debugger
     const typeMap = {
         NO_OPERATE: !oldVNode && !newVNode,
         ADD: !oldVNode && newVNode,
-        DELETE: oldVNode && newVNode,
+        DELETE: oldVNode && !newVNode,
         REPLACE: oldVNode && newVNode && oldVNode.type !== newVNode.type // 类型不同
     }
     let UPDATE_TYPE = Object.keys(typeMap).filter(key => typeMap[key])[0]
 
-    switch(UPDATE_TYPE){
+    switch (UPDATE_TYPE) {
         case 'NO_OPERATE':
             break
         case 'DELETE':
@@ -159,6 +227,7 @@ export function updateDomTree(oldVNode, newVNode, oldDOM) {
         default:
             // 深度的 dom-diff，新老虚拟DOM都存在且类型相同
             deepDOMDiff(oldVNode, newVNode)
+            break;
     }
 }
 export function findDomByVNode(VNode) {
