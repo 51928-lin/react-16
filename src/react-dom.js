@@ -18,7 +18,7 @@ export function createDOM(VNode) {
     } else if (type && type.$$typeof === REACT_FORWARD_REF) {
         return getDomByRefForwardFunction(VNode);
     } else if (type === REACT_TEXT){
-        dom = document.createTextNode(props);
+        dom = document.createTextNode(props.text);
     } else if (type && VNode.$$typeof === REACT_ELEMENT) {
         dom = document.createElement(type);
     }
@@ -112,7 +112,7 @@ function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
         let oldVNode = oldKeyChildMap[newKey];
         if (oldVNode) {
             deepDOMDiff(oldVNode, newVNode);
-            if (oldVNode.mountIndex < lastNotChangedIndex) {
+            if (oldVNode.index < lastNotChangedIndex) {
                 actions.push({
                     type: MOVE,
                     oldVNode,
@@ -121,7 +121,7 @@ function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
                 });
             }
             delete oldKeyChildMap[newKey]
-            lastNotChangedIndex = Math.max(lastNotChangedIndex, oldVNode.mountIndex);
+            lastNotChangedIndex = Math.max(lastNotChangedIndex, oldVNode.index);
         } else {
             actions.push({
                 type: CREATE,
@@ -176,7 +176,8 @@ function deepDOMDiff(oldVNode, newVNode) {
     let diffTypeMap = {
         ORIGIN_NODE: typeof oldVNode.type === 'string', // 原生节点
         CLASS_COMPONENT: typeof oldVNode.type === 'function' && oldVNode.type.isReactComponent,
-        FUNCTION_COMPONENT: typeof oldVNode.type === 'function'
+        FUNCTION_COMPONENT: typeof oldVNode.type === 'function',
+        TEXT: oldVNode.type === REACT_TEXT
     }
     let DIFF_TYPE = Object.keys(diffTypeMap).filter(key => diffTypeMap[key])[0]
     switch (DIFF_TYPE) {
@@ -191,6 +192,10 @@ function deepDOMDiff(oldVNode, newVNode) {
         case 'FUNCTION_COMPONENT':
             updateFunctionComponent(oldVNode, newVNode);
             break;
+        case 'TEXT':
+            newVNode.dom = findDomByVNode(oldVNode);
+            newVNode.dom.textContent = newVNode.props.text;
+            break;
         default:
             break;
     }
@@ -201,7 +206,6 @@ function removeVNode(vNode) {
 }
 // 开始dom-diff
 export function updateDomTree(oldVNode, newVNode, oldDOM) {
-    debugger
     const typeMap = {
         NO_OPERATE: !oldVNode && !newVNode,
         ADD: !oldVNode && newVNode,
