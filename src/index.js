@@ -3,8 +3,7 @@ import React from './react';
 import ReactDOM from './react-dom';
 
 class MyClassComponent extends React.Component{
-    counter = 0
-    isBlue = false
+    isReset = false
     oldArr = ['A', 'B', 'C', 'D', 'E']
     newArr = ['C', 'B', 'E', 'F', 'A']
     constructor(props) {
@@ -13,8 +12,9 @@ class MyClassComponent extends React.Component{
     }
     updateShowArr(){
         this.setState({
-            arr: this.newArr
+            arr: this.isReset ? this.oldArr : this.newArr
         })
+        this.isReset = !this.isReset
     }
     render(){
         return <div>
