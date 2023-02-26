@@ -82,7 +82,9 @@ function getDomByClassComponent(vNode) {
     let renderVNode = instance.render();
     instance.oldVNode = renderVNode
     if (!renderVNode) return null;
-    return createDOM(renderVNode);
+    let dom = createDOM(renderVNode);
+    if (instance.componentDidMount) instance.componentDidMount();
+    return dom
 }
 function getDomByRefForwardFunction(vNode) {
     let { type, props, ref } = vNode;
