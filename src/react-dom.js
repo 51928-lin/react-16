@@ -205,6 +205,9 @@ function deepDOMDiff(oldVNode, newVNode) {
 function removeVNode(vNode) {
     const currentDOM = findDomByVNode(vNode);
     if (currentDOM) currentDOM.remove();
+    if (vNode.classInstance && vNode.classInstance.componentWillUnmount) {
+        vNode.classInstance.componentWillUnmount();
+    }
 }
 // 开始dom-diff
 export function updateDomTree(oldVNode, newVNode, oldDOM) {
