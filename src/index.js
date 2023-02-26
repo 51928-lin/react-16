@@ -1,41 +1,63 @@
 
-import React from './react';
-import ReactDOM from './react-dom';
+import React from 'react';
+import ReactDOM from 'react-dom';
 
-class MyClassComponent extends React.Component{
-    isReset = false
-    oldArr = ['A', 'B', 'C', 'D', 'E']
-    newArr = ['C', 'B', 'E', 'F', 'A']
-    constructor(props) {
-        super(props);
-        this.state = { arr: this.oldArr };
-    }
-    updateShowArr(){
-        this.setState({
-            arr: this.isReset ? this.oldArr : this.newArr
-        })
-        this.isReset = !this.isReset
-    }
-    render(){
-        return <div>
-                    <div className='test-class' style={
-                        {
-                            color: 'red', 
-                            cursor: 'pointer', 
-                            border: '1px solid gray', 
-                            borderRadius: '6px',
-                            display: 'inline-block',
-                            padding: '6px 12px'
-                        }
-                    } onClick={ () => this.updateShowArr() }>Change The Text</div>
-                    <div>
-                        {
-                            this.state.arr.map(item => {
-                                return <div key={item}>{item}</div>
-                            })
-                        }
-                    </div>
-            </div>
-    }
+class Clock extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { date: new Date() };
+  }
+
+  // https://reactjs.org/docs/react-component.html#componentdidmount
+  // 1.组件挂载到页面上（已经操作了真实DOM）后调用
+  // 2.需要DOM节点的相关初始化操作需要放在这里
+  // 3.加载相关数据的好地方
+  // 4.适合事件订阅的，但要记住订阅的事件要在componentWillUnmount中取消订阅
+  // 5.不适合在这里调用setState，state初始值最好在constructor中赋值
+  componentDidMount() {
+    console.log('componentDidMount')
+    this.timerID = setInterval(
+      () => this.tick(),
+      1000
+    );
+  }
+
+  // https://reactjs.org/docs/react-component.html#componentdidupdate
+  // 1.更新完成后调用，初始化渲染不会调用
+  // 2.当组件完成更新，需要对DOM进行某种操作的时候，适合在这个函数中进行
+  // 3.当当前的props和之前的props有所不同，可以在这里进行有必要的网络请求
+  // 4.这里虽然可以调用setState，但是要记住有条件的调用，否则会陷入死循环
+  // 5.如果shouldComponentUpdate() 返回false，componentDidUpdate不会执行
+  // 6.如果实现了getSnapshotBeforeUpdate，componentDidUpdate会接收第三个参数
+  // 7.如果将props中的内容拷贝到state，可以考虑直接使用props
+  // https://reactjs.org/blog/2018/06/07/you-probably-dont-need-derived-state.html
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    console.log('componentDidUpdated', prevProps, prevState, snapshot)
+  }
+
+  // https://reactjs.org/docs/react-component.html#componentwillunmount
+  // 1.组件从DOM树上卸载完成的时候调用该函数
+  // 2.执行一些清理操作，比如清除定时器，取消事件订阅，取消网络请求等
+  // 3.不能在该函数中调用setState，不会产生任何效果，卸载后不会重新渲染
+  componentWillUnmount() {
+    console.log('componentWillUnmount')
+    clearInterval(this.timerID);
+  }
+
+  tick() {
+    this.setState({
+      date: new Date()
+    });
+  }
+
+  render() {
+    return (
+      <div>
+        <h1>Hello, world!</h1>
+        <h2>It is {this.state.date.toLocaleTimeString()}.</h2>
+      </div>
+    );
+  }
 }
-ReactDOM.render(<MyClassComponent />, document.getElementById('root'))
+
+ReactDOM.render(<Clock />, document.getElementById('root'));
