@@ -44,6 +44,93 @@ class Clock extends React.Component {
     clearInterval(this.timerID);
   }
 
+  // https://reactjs.org/docs/react-component.html#shouldcomponentupdate
+  // 1.让React知道state和props的变化不影响页面内容，也就是不会再次执行render函数
+  // 2.默认行为是每次state发生变化，组件都会重新渲染，绝大多数场景下都应该使用默认行为，所以一般不用该函数
+  // 3.会在接收到新的props或者state后，render函数执行前被调用，在初始化阶段和forceUpdate阶段不会执行
+  // 4.该方法仅作为性能优化
+  // 5.考虑使用内置的PureComponent，而不是手动在shouldComponentUpdate中编写代码，PureComponent对props和state都只进行浅层比较
+  // 6.如果手动编写shouldComponentUpdate，应将this.props与nextProps以及this.state与nextState进行比较，相同则返回false表示可以跳过更新，但是返回false不能避免子组件的更新
+  // 7.不建议在该函数内执行深度比较，或者通过JSON.stringify()比较，这样性能会很低
+  // 8.如果返回false，UNSAFE_componentWillUpdate、render、componentDidUpdate都不会执行
+  shouldComponentUpdate(nextProps, nextState){
+
+  }
+
+  // https://reactjs.org/docs/react-component.html#static-getderivedstatefromprops
+  // 1.在render函数执行之前调用
+  // 2.返回一个对象则更新state，返回null表示没有任何更新
+  // 3.使用这个函数的场景很少，当state需要随着props的变化而变化的时候才会用到，其实相当于一种缓冲机制
+  /**
+   * class Form extends Component {
+   *     state = {
+   *       email: this.props.defaultEmail,
+   *       prevUserID: this.props.userID
+   *     };
+   *     static getDerivedStateFromProps(props, state) {
+   *       // Any time the current user changes,
+   *       // Reset any parts of state that are tied to that user.
+   *       // In this simple example, that's just the email.
+   *       if (props.userID !== state.prevUserID) {
+   *         return {
+   *           prevUserID: props.userID,
+   *           email: props.defaultEmail
+   *         };
+   *      }
+   *       return null;
+   *     }
+   *     // ...
+   *   }
+   **/
+  // 4.如果需要使用的时候，可以考虑用memoization技术
+  // memoization技术介绍：https://reactjs.org/blog/2018/06/07/you-probably-dont-need-derived-state.html#what-about-memoization
+  // 5.静态函数不能访问类实例，因此多个类组件可以抽取为纯函数的公用逻辑
+  // 6.该函数在初始化挂载，更新，调用forceUpdate都会执行，与场景无关，而UNSAFE_componentWillReceiveProps只在由于父组件导致的更新的场景下调用，组件内的setState导致的更新不会调用
+  static getDerivedStateFromProps(props, state) {
+
+  }
+  
+  // https://reactjs.org/docs/react-component.html#getsnapshotbeforeupdate
+  // 1.该函数在render函数执行完成生成真实DOM后，DOM挂载到页面前执行
+  // 2.该函数使得组件在DOM发生变化之前可以获取一些信息
+  // 3.该函数返回的任何值都会作为componentDidUpdate的第三个参数传入
+  // 4.该生命周期函数并不常用，仅仅在一些特定UI变化的场景才会用到
+  // class ScrollingList extends React.Component {
+  //   constructor(props) {
+  //     super(props);
+  //     this.listRef = React.createRef();
+  //   }
+  
+  //   getSnapshotBeforeUpdate(prevProps, prevState) {
+  //     // Are we adding new items to the list?
+  //     // Capture the scroll position so we can adjust scroll later.
+  //     if (prevProps.list.length < this.props.list.length) {
+  //       const list = this.listRef.current;
+  //       return list.scrollHeight - list.scrollTop;
+  //     }
+  //     return null;
+  //   }
+  
+  //   componentDidUpdate(prevProps, prevState, snapshot) {
+  //     // If we have a snapshot value, we've just added new items.
+  //     // Adjust scroll so these new items don't push the old ones out of view.
+  //     // (snapshot here is the value returned from getSnapshotBeforeUpdate)
+  //     if (snapshot !== null) {
+  //       const list = this.listRef.current;
+  //       list.scrollTop = list.scrollHeight - snapshot;
+  //     }
+  //   }
+  
+  //   render() {
+  //     return (
+  //       <div ref={this.listRef}>{/* ...contents... */}</div>
+  //     );
+  //   }
+  // }
+  getSnapshotBeforeUpdate(prevProps, prevState){
+
+  }
+
   tick() {
     this.setState({
       date: new Date()
