@@ -1,4 +1,5 @@
 import { updateDomTree, findDomByVNode } from './react-dom'
+import { deepClone } from './utils'
 export let updaterQueue = {
     isBatch: false,
     updaters: new Set()
@@ -19,7 +20,8 @@ class Updater {
         this.pendingStates.push(partialState);
         this.preHandleForUpdate();
     }
-    preHandleForUpdate() {
+    preHandleForUpdate(nextProps) {
+        this.nextProps = nextProps;
         if (updaterQueue.isBatch) {//如果是批量
             updaterQueue.updaters.add(this);//就把当前的updater添加到set里保存
         } else {
@@ -27,15 +29,23 @@ class Updater {
         }
     }
     launchUpdate() {
-        const { ClassComponentInstance, pendingStates } = this;
-        if (pendingStates.length === 0) return
-        ClassComponentInstance.state = this.pendingStates.reduce((preState, newState) => {
+        const { ClassComponentInstance, pendingStates, nextProps } = this;
+        let prevProps = deepClone(this.props)
+        let prevState = deepClone(this.state)
+        if (pendingStates.length === 0 && !nextProps) return
+        let isShouldUpdate = true;
+        let nextState = this.pendingStates.reduce((preState, newState) => {
             return {
                 ...preState, ...newState
             }
         }, this.ClassComponentInstance.state);
+        if (ClassComponentInstance.shouldComponentUpdate && (!ClassComponentInstance.shouldComponentUpdate(nextProps, nextState))) {
+            isShouldUpdate = false;
+        }
+        if(nextProps) ClassComponentInstance.props = nextProps
+        ClassComponentInstance.state = nextState;
         this.pendingStates.length = 0
-        ClassComponentInstance.update();
+        if(isShouldUpdate) ClassComponentInstance.update(prevProps, prevState);
     }
 }
 export class Component {
@@ -52,14 +62,19 @@ export class Component {
          */
         this.updater.addState(partialState);
     }
-    update() {
+    update(prevProps, prevState) {
         let oldVNode = this.oldVNode;
         let oldDOM = findDomByVNode(oldVNode);
+        if (this.constructor.getDerivedStateFromProps) {
+            let newState = this.constructor.getDerivedStateFromProps(this.props, this.state) || {};
+            this.state = { ...this.state, ...newState };
+        }
+        let snapshot = this.getSnapshotBeforeUpdate && this.getSnapshotBeforeUpdate(prevProps, prevState);
         let newVNode = this.render();
         updateDomTree(oldVNode, newVNode, oldDOM)
         this.oldVNode = newVNode;
         if (this.componentDidUpdate) {
-            this.componentDidUpdate(this.props, this.state);
+            this.componentDidUpdate(this.props, this.state, snapshot);
         }
     }
 }
