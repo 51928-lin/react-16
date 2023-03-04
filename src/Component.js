@@ -28,10 +28,10 @@ class Updater {
             this.launchUpdate();
         }
     }
-    launchUpdate() {
-        const { ClassComponentInstance, pendingStates, nextProps } = this;
-        let prevProps = deepClone(this.props)
-        let prevState = deepClone(this.state)
+    launchUpdate(nextProps) {
+        const { ClassComponentInstance, pendingStates} = this;
+        let prevProps = deepClone(this.ClassComponentInstance.props)
+        let prevState = deepClone(this.ClassComponentInstance.state)
         if (pendingStates.length === 0 && !nextProps) return
         let isShouldUpdate = true;
         let nextState = this.pendingStates.reduce((preState, newState) => {

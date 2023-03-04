@@ -1,6 +1,6 @@
 
-import React from 'react';
-import ReactDOM from 'react-dom';
+import React from './react';
+import ReactDOM from './react-dom';
 
 class Greeting extends React.PureComponent {
   render() {
@@ -15,21 +15,25 @@ class MyApp extends React.Component {
     this.state = {name: '', address: ''}
   }
 
-  setName = (name) => {
-    this.setState({name})
+  setName = (newName) => {
+    this.setState({name: newName})
   }
-  setAddress = (address) => {
-    this.setState({address})
+  setAddress = (newAddress) => {
+    this.setState({address: newAddress})
   }
   render(){
     return <div>
       <label>
         Name{': '}
-        <input value={this.state.name} onChange={e => this.setName(e.target.value)} />
+        <input onInput={e => {
+          this.setName(e.target.value)
+        }} />
       </label>
       <label>
         Address{': '}
-        <input value={this.state.address} onChange={e => this.setAddress(e.target.value)} />
+        <input onInput={e => {
+          this.setAddress(e.target.value)
+        }} />
       </label>
       <Greeting name={this.state.name} />
     </div> 

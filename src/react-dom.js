@@ -78,6 +78,7 @@ function getDomByFunctionComponent(vNode) {
 function getDomByClassComponent(vNode) {
     let { type, props, ref } = vNode;
     let instance = new type(props)
+    vNode.classInstance = instance
     ref && (ref.current = instance);
     let renderVNode = instance.render();
     instance.oldVNode = renderVNode
@@ -177,7 +178,7 @@ function updateFunctionComponent(oldVNode, newVNode) {
 function deepDOMDiff(oldVNode, newVNode) {
     let diffTypeMap = {
         ORIGIN_NODE: typeof oldVNode.type === 'string', // 原生节点
-        CLASS_COMPONENT: typeof oldVNode.type === 'function' && oldVNode.type.isReactComponent,
+        CLASS_COMPONENT: typeof oldVNode.type === 'function' && oldVNode.type.IS_CLASS_COMPONENT,
         FUNCTION_COMPONENT: typeof oldVNode.type === 'function',
         TEXT: oldVNode.type === REACT_TEXT
     }
