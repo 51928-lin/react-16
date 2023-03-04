@@ -1,4 +1,4 @@
-import { REACT_ELEMENT, REACT_FORWARD_REF, toVNode, shallowEqual } from './utils'
+import { REACT_ELEMENT, REACT_FORWARD_REF, REACT_MEMO, toVNode, shallowEqual } from './utils'
 import { Component } from './Component'
 function createElement(type, properties = {}, children) {
     let ref = properties.ref || null; // 后面会讲到，这里只需要知道是跟操作DOM相关
@@ -40,11 +40,20 @@ function createElement(type, properties = {}, children) {
       return !shallowEqual(this.props, nextProps) || !shallowEqual(this.state, nextState)
     }
   }
+
+  function memo(type, compare = shallowEqual) {
+    return {
+      $$typeof: REACT_MEMO,
+      type,
+      compare
+    }
+  }
   const React = {
     createElement,
     Component,
     createRef,
     forwardRef,
-    PureComponent
+    PureComponent,
+    memo
   }
   export default React;

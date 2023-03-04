@@ -1,4 +1,4 @@
-import { REACT_ELEMENT, REACT_FORWARD_REF, MOVE, CREATE, REACT_TEXT } from './utils'
+import { REACT_ELEMENT, REACT_FORWARD_REF, REACT_MEMO, MOVE, CREATE, REACT_TEXT } from './utils'
 import { addEvent } from './event'
 function render(VNode, containerDOM) {
     mount(VNode, containerDOM)
@@ -17,7 +17,9 @@ export function createDOM(VNode) {
         return getDomByFunctionComponent(VNode)
     } else if (type && type.$$typeof === REACT_FORWARD_REF) {
         return getDomByRefForwardFunction(VNode);
-    } else if (type === REACT_TEXT){
+    } else if (type && type.$$typeof === REACT_MEMO) {
+        return getDomByMemoFunctionComponent(VNode);
+    } else if (type === REACT_TEXT) {
         dom = document.createTextNode(props.text);
     } else if (type && VNode.$$typeof === REACT_ELEMENT) {
         dom = document.createElement(type);
@@ -93,10 +95,17 @@ function getDomByRefForwardFunction(vNode) {
     if (!renderVdom) return null;
     return createDOM(renderVdom);
 }
+function getDomByMemoFunctionComponent(vNode) {
+    let { type, props } = vNode;
+    let renderVNode = type.type(props);
+    if (!renderVNode) return null;
+    vNode.oldRenderVdom = renderVNode;
+    return createDOM(renderVNode);
+}
 function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
     oldVNodeChildren = (Array.isArray(oldVNodeChildren) ? oldVNodeChildren : [oldVNodeChildren]).filter(Boolean);
     newVNodeChildren = (Array.isArray(newVNodeChildren) ? newVNodeChildren : [newVNodeChildren]).filter(Boolean);
-    
+
     // 利用Map数据结构为旧的虚拟DOM数组找到key和节点的关系，为后续根据key查找是否有可复用的虚拟DOM创造条件
     let lastNotChangedIndex = -1;
     let oldKeyChildMap = {};
@@ -108,7 +117,7 @@ function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
     // 遍历新的子虚拟DOM树组，找到可以复用但需要移动的、需要重新创建的、需要删除的节点，剩下的都是不用动的节点
     let actions = [];
     newVNodeChildren.forEach((newVNode, index) => {
-        if(typeof newVNode !== 'string'){
+        if (typeof newVNode !== 'string') {
             newVNode.index = index;
         }
         let newKey = newVNode.key ? newVNode.key : index;
@@ -147,10 +156,10 @@ function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
         let { type, oldVNode, newVNode, index } = action;
         let childNodes = parentDOM.childNodes;
         const getDomForInsert = () => {
-            if(type === CREATE){
+            if (type === CREATE) {
                 return createDOM(newVNode)
             }
-            if(type === MOVE){
+            if (type === MOVE) {
                 return findDomByVNode(oldVNode)
             }
         }
@@ -174,13 +183,25 @@ function updateFunctionComponent(oldVNode, newVNode) {
     updateDomTree(oldVNode.oldRenderVNode, newRenderVNode, oldDOM);
     newVNode.oldRenderVNode = newRenderVNode;
 }
-
+function updateMemoFunctionComponent(oldVNode, newVNode) {
+    let { type } = oldVNode;
+    if (!type.compare(oldVNode.props, newVNode.props)) {
+        const oldDOM = findDomByVNode(oldVNode);
+        const { type } = newVNode;
+        let renderVNode = type.type(newVNode.props);
+        updateDomTree(oldVNode.oldRenderVdom, renderVNode, oldDOM);
+        newVNode.oldRenderVdom = renderVNode;
+    } else {
+        newVNode.oldRenderVdom = oldVNode.oldRenderVdom;
+    }
+}
 function deepDOMDiff(oldVNode, newVNode) {
     let diffTypeMap = {
         ORIGIN_NODE: typeof oldVNode.type === 'string', // 原生节点
         CLASS_COMPONENT: typeof oldVNode.type === 'function' && oldVNode.type.IS_CLASS_COMPONENT,
         FUNCTION_COMPONENT: typeof oldVNode.type === 'function',
-        TEXT: oldVNode.type === REACT_TEXT
+        TEXT: oldVNode.type === REACT_TEXT,
+        MEMO: oldVNode.type.$$typeof === REACT_MEMO
     }
     let DIFF_TYPE = Object.keys(diffTypeMap).filter(key => diffTypeMap[key])[0]
     switch (DIFF_TYPE) {
@@ -198,6 +219,9 @@ function deepDOMDiff(oldVNode, newVNode) {
         case 'TEXT':
             newVNode.dom = findDomByVNode(oldVNode);
             newVNode.dom.textContent = newVNode.props.text;
+            break;
+        case 'MEMO':
+            updateMemoFunctionComponent(oldVNode, newVNode)
             break;
         default:
             break;
