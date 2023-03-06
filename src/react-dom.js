@@ -1,7 +1,21 @@
 import { REACT_ELEMENT, REACT_FORWARD_REF, REACT_MEMO, MOVE, CREATE, REACT_TEXT } from './utils'
 import { addEvent } from './event'
+export let startUpdateHooks;
+let isHooksUpdated = false
+export let hookIndex = 0
+
 function render(VNode, containerDOM) {
     mount(VNode, containerDOM)
+    startUpdateHooks = () => {//React每次更新都是从根节点开始更新
+        if (!isHooksUpdated) {
+            isHooksUpdated = true;
+            queueMicrotask(() => {
+                isHooksUpdated = false;
+                hookIndex = 0;//每次更新都会索引重置为0
+                updateDomTree(VNode, VNode, findDomByVNode(VNode));
+            }) 
+        }
+    }
 }
 function mount(VNode, containerDOM) {
     let newDOM = createDOM(VNode)
@@ -75,7 +89,9 @@ function getDomByFunctionComponent(vNode) {
     let { type, props } = vNode;
     let renderVNode = type(props);
     if (!renderVNode) return null;
-    return createDOM(renderVNode);
+    let dom = createDOM(renderVNode)
+    vNode.dom = dom
+    return dom;
 }
 function getDomByClassComponent(vNode) {
     let { type, props, ref } = vNode;
@@ -264,6 +280,8 @@ export function updateDomTree(oldVNode, newVNode, oldDOM) {
             break;
     }
 }
+
+
 export function findDomByVNode(VNode) {
     if (!VNode) return
     if (VNode.dom) return VNode.dom

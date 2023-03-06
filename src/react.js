@@ -1,5 +1,6 @@
 import { REACT_ELEMENT, REACT_FORWARD_REF, REACT_MEMO, toVNode, shallowEqual } from './utils'
 import { Component } from './Component'
+export * from './hooks'
 function createElement(type, properties = {}, children) {
     let ref = properties.ref || null; // 后面会讲到，这里只需要知道是跟操作DOM相关
     let key = properties.key || null; // 后面会讲到，这里只需要知道这个跟DOM DIFF相关
