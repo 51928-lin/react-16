@@ -1,7 +1,31 @@
-import {startUpdateHooks } from './react-dom'
+import {emitUpdateForHooks } from './react-dom'
 let hookStates = []; //存放状态的数组
-export let hookIndex = 0
+let hookIndex = 0
+export function resetHookIndex(){
+  hookIndex = 0
+}
+export function useState(initialValue) {
+  // const currentIndex = stateArr.length;
+  // stateArr[currentIndex] = initialValue;
 
+  // function setState(newValue) {
+  //   stateArr[currentIndex] = newValue;
+  //   emitUpdateForHooks();
+  // }
+
+  // return [stateArr[currentIndex], setState];
+  console.log(hookIndex, initialValue, '....')
+  // return useReducer(null, initialState);
+  hookStates[hookIndex] = hookStates[hookIndex] || initialValue;
+  const currentIndex = hookIndex;//在函数内部声明一个变量，缓存当前的索引
+  function setState(newState) {
+    hookStates[currentIndex] = newState;
+    emitUpdateForHooks();
+  }
+  let returnVal = hookStates[hookIndex]
+  hookIndex = hookIndex + 1
+  return [returnVal, setState];
+}
 export function useReducer(reducer, initialState) {
   hookStates[hookIndex] = hookStates[hookIndex] || (typeof initialState === 'function' ? initialState() : initialState);
   const currentIndex = hookIndex;
@@ -15,7 +39,7 @@ export function useReducer(reducer, initialState) {
       let newState = typeof action === 'function' ? action(oldState) : action;
       hookStates[currentIndex] = newState;
     }
-    startUpdateHooks();
+    emitUpdateForHooks();
   }
   return [hookStates[hookIndex++], dispatch];
 }
@@ -24,19 +48,7 @@ export function useReducer(reducer, initialState) {
  * @param {*} initialState 初始状态 
  * @returns 
  */
-export function useState(initialState) {
-  console.log(hookIndex, initialState, '....')
-  // return useReducer(null, initialState);
-  hookStates[hookIndex] = hookStates[hookIndex] || initialState;
-  const currentIndex = hookIndex;//在函数内部声明一个变量，缓存当前的索引
-  function setState(newState) {
-    hookStates[currentIndex] = newState;
-    startUpdateHooks();
-  }
-  let returnVal = hookStates[hookIndex]
-  hookIndex = hookIndex + 1
-  return [returnVal, setState];
-}
+
 export function useEffect(callback, deps) {
   const currentIndex = hookIndex;
   if (hookStates[hookIndex]) {
