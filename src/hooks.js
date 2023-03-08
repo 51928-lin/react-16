@@ -1,138 +1,81 @@
 import {emitUpdateForHooks } from './react-dom'
-let hookStates = []; //存放状态的数组
+let states = [];
 let hookIndex = 0
+
 export function resetHookIndex(){
   hookIndex = 0
 }
+
 export function useState(initialValue) {
-  // const currentIndex = stateArr.length;
-  // stateArr[currentIndex] = initialValue;
-
-  // function setState(newValue) {
-  //   stateArr[currentIndex] = newValue;
-  //   emitUpdateForHooks();
-  // }
-
-  // return [stateArr[currentIndex], setState];
-  console.log(hookIndex, initialValue, '....')
-  // return useReducer(null, initialState);
-  hookStates[hookIndex] = hookStates[hookIndex] || initialValue;
-  const currentIndex = hookIndex;//在函数内部声明一个变量，缓存当前的索引
+  states[hookIndex] = states[hookIndex] || initialValue;
+  const currentIndex = hookIndex;
   function setState(newState) {
-    hookStates[currentIndex] = newState;
+    states[currentIndex] = newState;
     emitUpdateForHooks();
   }
-  let returnVal = hookStates[hookIndex]
-  hookIndex = hookIndex + 1
-  return [returnVal, setState];
+  return [states[hookIndex++], setState];
 }
-export function useReducer(reducer, initialState) {
-  hookStates[hookIndex] = hookStates[hookIndex] || (typeof initialState === 'function' ? initialState() : initialState);
+
+export function useReducer(reducer, initialValue) {
+  states[hookIndex] = states[hookIndex] || initialValue;
   const currentIndex = hookIndex;
   function dispatch(action) {
-    //获取老状态
-    let oldState = hookStates[currentIndex];
-    if (typeof reducer === 'function') {
-      let newState = reducer(oldState, action);
-      hookStates[currentIndex] = newState;
-    } else {
-      let newState = typeof action === 'function' ? action(oldState) : action;
-      hookStates[currentIndex] = newState;
-    }
+    states[currentIndex] = reducer(states[currentIndex], action);;
     emitUpdateForHooks();
   }
-  return [hookStates[hookIndex++], dispatch];
+  return [states[hookIndex++], dispatch];
 }
-/**
- * 在函数组件中使用状态
- * @param {*} initialState 初始状态 
- * @returns 
- */
 
-export function useEffect(callback, deps) {
+export function useEffect(effectFunction, deps = []) {
   const currentIndex = hookIndex;
-  if (hookStates[hookIndex]) {
-    const [destroy, lastDeps] = hookStates[hookIndex];
-    let same = deps && deps.every((item, index) => item === lastDeps[index]);
-    if (same) {
-      hookIndex++;
-    } else {
-      setTimeout(() => {
-        destroy && destroy();
-        hookStates[currentIndex] = [callback(), deps];
-      });
-      hookIndex++;
-    }
-  } else {
+  const [destroyFunction, preDeps] = states[hookIndex] || [null, null];
+  if(!states[hookIndex] || deps.some((item, index) => item !== preDeps[index])){
     setTimeout(() => {
-      const destroy = callback();
-      hookStates[currentIndex] = [destroy, deps];
-    });
-    hookIndex++;
-  }
+      destroyFunction && destroyFunction();
+      states[currentIndex] = [effectFunction(), deps];
+    })
+  };
+  hookIndex++;
 }
-export function useLayoutEffect(callback, deps) {
+
+export function useLayoutEffect(effectFunction, deps = []) {
   const currentIndex = hookIndex;
-  if (hookStates[hookIndex]) {
-    const [destroy, lastDeps] = hookStates[hookIndex];
-    let same = deps && deps.every((item, index) => item === lastDeps[index]);
-    if (same) {
-      hookIndex++;
-    } else {
-      queueMicrotask(() => {
-        destroy && destroy();
-        hookStates[currentIndex] = [callback(), deps];
-      });
-      hookIndex++;
-    }
-  } else {
+  const [destroyFunction, preDeps] = states[hookIndex] || [null, null];
+  if(!states[hookIndex] || deps.some((item, index) => item !== preDeps[index])){
     queueMicrotask(() => {
-      const destroy = callback();
-      hookStates[currentIndex] = [destroy, deps];
-    });
-    hookIndex++;
-  }
+      destroyFunction && destroyFunction();
+      states[currentIndex] = [effectFunction(), deps];
+    })
+  };
+  hookIndex++;
 }
+
 export function useRef(initialValue) {
-  hookStates[hookIndex] = hookStates[hookIndex] || { current: initialValue }
-  return hookStates[hookIndex++]
+  states[hookIndex] = states[hookIndex] || { current: initialValue }
+  return states[hookIndex++]
 }
-export function useImperativeHandle(ref, factory) {
-  ref.current = factory();
+
+export function useImperativeHandle(ref, dataFactory) {
+  ref.current = dataFactory();
 }
-export function useMemo(factory, deps) {
-  // 后面再渲染的时候
-  if (hookStates[hookIndex]) {
-    let [lastMemo, lastDeps] = hookStates[hookIndex];
-    let same = deps.every((item, index) => item === lastDeps[index]);
-    if (same) {
-      hookIndex++;
-      return lastMemo;
-    } else {
-      let newMemo = factory();
-      hookStates[hookIndex++] = [newMemo, deps];
-      return newMemo;
-    }
-  } else { //第一次渲染的时候
-    let newMemo = factory();
-    hookStates[hookIndex++] = [newMemo, deps];
-    return newMemo;
+
+export function useMemo(dataFactory, deps = []) {
+  let [preData, preDeps] = states[hookIndex] || [null, null];
+  if(!states[hookIndex] || deps.some((item, index) => item !== preDeps[index])){
+    let newData = dataFactory()
+    states[hookIndex++] = [newData, deps]
+    return newData
   }
+  hookIndex ++
+  return preData
 }
+
 export function useCallback(callback, deps) {
-  // 后面再渲染的时候
-  if (hookStates[hookIndex]) {
-    let [lastCallback, lastDeps] = hookStates[hookIndex];
-    let same = deps.every((item, index) => item === lastDeps[index]);
-    if (same) {
-      hookIndex++;
-      return lastCallback;
-    } else {
-      hookStates[hookIndex++] = [callback, deps];
-      return callback;
-    }
-  } else { //第一次渲染的时候
-    hookStates[hookIndex++] = [callback, deps];
-    return callback;
+  let [preCallback, preDeps] = states[hookIndex] || [null, null];
+  if(!states[hookIndex] || deps.some((item, index) => item !== preDeps[index])){
+    states[hookIndex++] = [callback, deps]
+    return callback
   }
+  hookIndex ++
+  return preCallback
 }
