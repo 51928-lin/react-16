@@ -53,6 +53,11 @@ export function createDOM(VNode) {
 function mountArray(children, parent) {
     if (!Array.isArray(children)) return
     for (let i = 0; i < children.length; i++) {
+        if(!children[i]) {
+            children.splice(i, 1)
+            i--
+            continue
+        }
         children[i].index = i;
         mount(children[i], parent)
     }
@@ -140,7 +145,7 @@ function updateChildren(parentDOM, oldVNodeChildren, newVNodeChildren) {
         let newKey = newVNode.key ? newVNode.key : index;
         let oldVNode = oldKeyChildMap[newKey];
         if (oldVNode) {
-            deepDOMDiff(oldVNode, newVNode);
+            updateDomTree(oldVNode, newVNode, findDomByVNode(oldVNode));
             if (oldVNode.index < lastNotChangedIndex) {
                 actions.push({
                     type: MOVE,
@@ -193,7 +198,7 @@ function updateClassComponent(oldVNode, newVNode) {
     classInstance.updater.launchUpdate(newVNode.props);
 }
 function updateFunctionComponent(oldVNode, newVNode) {
-    let oldDOM = findDomByVNode(oldVNode);
+    let oldDOM = newVNode.dom = findDomByVNode(oldVNode);
     if (!oldDOM) return;
     const { type, props } = newVNode;
     let newRenderVNode = type(props);
