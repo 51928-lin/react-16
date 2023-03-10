@@ -6,12 +6,12 @@ let isHooksUpdated = false
 
 function render(VNode, containerDOM) {
     mount(VNode, containerDOM)
-    emitUpdateForHooks = () => {//React每次更新都是从根节点开始更新
+    emitUpdateForHooks = () => {
         if (!isHooksUpdated) {
             isHooksUpdated = true;
             queueMicrotask(() => {
                 isHooksUpdated = false;
-                resetHookIndex() //每次更新都会索引重置为0
+                resetHookIndex() 
                 updateDomTree(VNode, VNode, findDomByVNode(VNode));
             }) 
         }
