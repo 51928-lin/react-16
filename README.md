@@ -4,4 +4,4 @@
 
 配套视频：[https://coding.imooc.com/class/650.html](https://coding.imooc.com/class/650.html)
 
-配套电子书：[https://git.imooc.com/coding-650](https://git.imooc.com/coding-650)
+配套电子书：[https://www.yangyitao.com/react18/](https://www.yangyitao.com/react18/)
